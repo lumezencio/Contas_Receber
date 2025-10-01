@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block title %}Contas a Receber - AEQUITAS{% endblock %}
+
+{% block content %}
+<!-- ============================================================ -->
+<!-- CABEÇALHO DA PÁGINA COM AÇÕES -->
+<!-- ============================================================ -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+    <div>
+        <h1 class="text-4xl font-bold text-white mb-2">Contas a Receber</h1>
+        <p class="text-gray-400">
+            Gerenciamento de contas e parcelas do sistema
+            {% if total_contas %}
+                <span class="text-cyan-400 font-semibold">({{ total_contas }} conta{{ total_contas|pluralize }})</span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="mt-4 md:mt-0">
+        <a href="{% url 'financeiro:conta_create' %}" 
+           class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Lançar Nova Conta
+        </a>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- BARRA DE BUSCA E FILTROS -->
+<!-- ============================================================ -->
+<div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6 mb-6">
+    <form method="get" action="{% url 'financeiro:conta_list' %}" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- Campo de Busca -->
+            <div class="md:col-span-2">
+                <label for="search" class="block text-sm font-medium text-gray-300 mb-2">
+                    Buscar Conta
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <input type="text" 
+                           name="q" 
+                           id="search"
+                           value="{{ query|default:'' }}"
+                           placeholder="Cliente ou descrição..."
+                           class="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all">
+                </div>
+            </div>
+            
+            <!-- Filtro de Status -->
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-300 mb-2">
+                    Status
+                </label>
+                <select name="status" 
+                        id="status"
+                        class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all">
+                    <option value="">Todos os status</option>
+                    <option value="em_aberto" {% if status_filtro == 'em_aberto' %}selected{% endif %}>Em Aberto</option>
+                    <option value="quitada" {% if status_filtro == 'quitada' %}selected{% endif %}>Quitadas</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Botões de Ação -->
+        <div class="flex items-center justify-end space-x-3">
+            {% if query or status_filtro %}
+            <a href="{% url 'financeiro:conta_list' %}" 
+               class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors">
+                Limpar Filtros
+            </a>
+            {% endif %}
+            <button type="submit" 
+                    class="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors">
+                Buscar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- ============================================================ -->
+<!-- TABELA DE CONTAS -->
+<!-- ============================================================ -->
+<div class="bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
+    
+    {% if contas %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-700">
+            <thead class="bg-gray-700">
+                <tr>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Cliente
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Descrição
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Valor Total
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Parcelas
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Lançamento
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Ações
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-gray-800 divide-y divide-gray-700">
+                {% for conta in contas %}
+                <tr class="hover:bg-gray-700/50 transition-colors">
+                    
+                    <!-- Cliente -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                                    <span class="text-white font-bold text-sm">
+                                        {{ conta.cliente.nome_completo|slice:":2"|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-white">
+                                    {{ conta.cliente.nome_completo|truncatewords:3 }}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    
+                    <!-- Descrição -->
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-300">
+                            {{ conta.descricao|truncatewords:5 }}
+                        </div>
+                    </td>
+                    
+                    <!-- Valor Total -->
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <div class="text-sm font-semibold text-cyan-400">
+                            R$ {{ conta.valor_total|floatformat:2 }}
+                        </div>
+                    </td>
+                    
+                    <!-- Parcelas -->
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <div class="text-sm text-gray-300">
+                            {{ conta.numero_parcelas }}x
+                        </div>
+                        {% if conta.total_pago or conta.total_pendente %}
+                        <div class="text-xs text-gray-500">
+                            {% if conta.total_pago %}
+                                <span class="text-green-400">Pago: R$ {{ conta.total_pago|floatformat:2 }}</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Status -->
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        {% if conta.total_pendente and conta.total_pendente > 0 %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-900/30 text-yellow-400 border border-yellow-700">
+                                <span class="w-2 h-2 mr-2 bg-yellow-400 rounded-full animate-pulse"></span>
+                                Em Aberto
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-900/30 text-green-400 border border-green-700">
+                                <span class="w-2 h-2 mr-2 bg-green-400 rounded-full"></span>
+                                Quitada
+                            </span>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Data de Lançamento -->
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <div class="text-sm text-gray-300">
+                            {{ conta.data_lancamento|date:"d/m/Y" }}
+                        </div>
+                    </td>
+                    
+                    <!-- Ações -->
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <div class="flex items-center justify-center space-x-3">
+                            <a href="{% url 'financeiro:conta_detail' pk=conta.pk %}" 
+                               class="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold"
+                               title="Ver detalhes">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </a>
+                            
+                            <a href="{% url 'financeiro:conta_update' pk=conta.pk %}" 
+                               class="text-indigo-400 hover:text-indigo-300 transition-colors"
+                               title="Editar conta">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- ============================================================ -->
+    <!-- PAGINAÇÃO -->
+    <!-- ============================================================ -->
+    {% if contas.has_other_pages %}
+    <div class="bg-gray-700 px-6 py-4 flex items-center justify-between border-t border-gray-600">
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if contas.has_previous %}
+                <a href="?page={{ contas.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filtro %}&status={{ status_filtro }}{% endif %}" 
+                   class="relative inline-flex items-center px-4 py-2 bg-gray-600 text-sm font-medium text-gray-300 hover:bg-gray-500 rounded-md">
+                    Anterior
+                </a>
+            {% endif %}
+            {% if contas.has_next %}
+                <a href="?page={{ contas.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filtro %}&status={{ status_filtro }}{% endif %}" 
+                   class="ml-3 relative inline-flex items-center px-4 py-2 bg-gray-600 text-sm font-medium text-gray-300 hover:bg-gray-500 rounded-md">
+                    Próximo
+                </a>
+            {% endif %}
+        </div>
+        
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-400">
+                    Mostrando
+                    <span class="font-medium text-white">{{ contas.start_index }}</span>
+                    até
+                    <span class="font-medium text-white">{{ contas.end_index }}</span>
+                    de
+                    <span class="font-medium text-white">{{ contas.paginator.count }}</span>
+                    resultado{{ contas.paginator.count|pluralize }}
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Paginação">
+                    {% if contas.has_previous %}
+                        <a href="?page={{ contas.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filtro %}&status={{ status_filtro }}{% endif %}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md bg-gray-600 text-sm font-medium text-gray-300 hover:bg-gray-500">
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </a>
+                    {% endif %}
+                    
+                    <span class="relative inline-flex items-center px-4 py-2 bg-cyan-600 text-sm font-medium text-white">
+                        {{ contas.number }}
+                    </span>
+                    
+                    {% if contas.has_next %}
+                        <a href="?page={{ contas.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filtro %}&status={{ status_filtro }}{% endif %}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md bg-gray-600 text-sm font-medium text-gray-300 hover:bg-gray-500">
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <!-- ============================================================ -->
+    <!-- ESTADO VAZIO -->
+    <!-- ============================================================ -->
+    <div class="text-center py-16">
+        <svg class="mx-auto h-24 w-24 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <h3 class="mt-4 text-xl font-medium text-gray-400">
+            {% if query or status_filtro %}
+                Nenhuma conta encontrada
+            {% else %}
+                Nenhuma conta a receber cadastrada
+            {% endif %}
+        </h3>
+        <p class="mt-2 text-sm text-gray-500">
+            {% if query or status_filtro %}
+                Tente ajustar os filtros de busca
+            {% else %}
+                Comece lançando sua primeira conta a receber
+            {% endif %}
+        </p>
+        <div class="mt-6">
+            {% if query or status_filtro %}
+                <a href="{% url 'financeiro:conta_list' %}" 
+                   class="inline-flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                    Limpar Filtros
+                </a>
+            {% else %}
+                <a href="{% url 'financeiro:conta_create' %}" 
+                   class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold rounded-lg shadow-lg transition-all">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Lançar Primeira Conta
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Parcela - Sistema Financeiro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .btn-back {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-info h1 {
+            color: #667eea;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header-info p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .status-pago {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-aberto {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-vencido {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .section-title {
+            color: #667eea;
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            color: #555;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input:disabled,
+        .form-group select:disabled,
+        .form-group textarea:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: #e7f3ff;
+            border-color: #2196F3;
+            color: #0c5460;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .buttons-section {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .actions-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .header {
+                flex-direction: column;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .buttons-section {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="CONTA_DETAIL.HTML" class="btn-back" id="btn-voltar">← Voltar para a Conta</a>
+
+        <div class="card">
+            <div class="header">
+                <div class="header-info">
+                    <h1 id="titulo-parcela">Parcela</h1>
+                    <p id="info-cliente">Cliente: -</p>
+                </div>
+                <div>
+                    <span class="status-badge" id="status-badge">-</span>
+                </div>
+            </div>
+
+            <h2 class="section-title">Dados da Parcela</h2>
+
+            <div id="alert-container"></div>
+
+            <form id="form-parcela">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="numero-parcela">Número da Parcela</label>
+                        <input type="text" id="numero-parcela" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="valor-parcela">Valor da Parcela (R$)</label>
+                        <input type="number" id="valor-parcela" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="data-vencimento">Data de Vencimento</label>
+                        <input type="date" id="data-vencimento" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="data-pagamento">Data de Pagamento</label>
+                        <input type="date" id="data-pagamento">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="valor-pago">Valor Pago (R$)</label>
+                        <input type="number" id="valor-pago" step="0.01">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status-parcela">Status</label>
+                        <select id="status-parcela" disabled>
+                            <option value="aberto">Aberto</option>
+                            <option value="pago">Pago</option>
+                            <option value="vencido">Vencido</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="observacoes">Observações</label>
+                    <textarea id="observacoes" rows="3"></textarea>
+                </div>
+
+                <div class="buttons-section" id="buttons-container">
+                    <button type="submit" class="btn btn-primary" id="btn-salvar">
+                        Salvar Alterações
+                    </button>
+                </div>
+            </form>
+
+            <div class="actions-section">
+                <h2 class="section-title">Ações de Pagamento</h2>
+                <div class="buttons-section" id="payment-actions">
+                    <!-- Botões serão inseridos dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const parcelaId = urlParams.get('id');
+        const contaId = urlParams.get('contaId');
+
+        if (!parcelaId || !contaId) {
+            alert('Dados inválidos!');
+            window.location.href = 'CONTA_DETAIL.HTML';
+        }
+
+        let parcelaAtual = null;
+
+        // Atualizar link de voltar
+        document.getElementById('btn-voltar').href = 'CONTA_DETAIL.HTML?id=' + contaId;
+
+        function formatarMoeda(valor) {
+            return parseFloat(valor).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+        }
+
+        function formatarData(data) {
+            if (!data) return '';
+            const partes = data.split('-');
+            return partes[2] + '/' + partes[1] + '/' + partes[0];
+        }
+
+        function carregarParcela() {
+            const contas = JSON.parse(localStorage.getItem('contas') || '[]');
+            const conta = contas.find(c => c.id == contaId);
+
+            if (!conta || !conta.parcelas) {
+                alert('Conta não encontrada!');
+                window.location.href = 'CONTA_DETAIL.HTML?id=' + contaId;
+                return;
+            }
+
+            parcelaAtual = conta.parcelas.find(p => p.id == parcelaId);
+
+            if (!parcelaAtual) {
+                alert('Parcela não encontrada!');
+                window.location.href = 'CONTA_DETAIL.HTML?id=' + contaId;
+                return;
+            }
+
+            // Preencher informações do header
+            document.getElementById('titulo-parcela').textContent = 
+                'Parcela ' + parcelaAtual.numero + '/' + conta.numero_parcelas;
+            document.getElementById('info-cliente').textContent = 
+                'Cliente: ' + conta.cliente;
+
+            // Status badge
+            const statusBadge = document.getElementById('status-badge');
+            const isPago = parcelaAtual.status === 'pago';
+            
+            if (isPago) {
+                statusBadge.textContent = 'PAGO (' + formatarData(parcelaAtual.data_pagamento) + ')';
+                statusBadge.className = 'status-badge status-pago';
+            } else if (parcelaAtual.status === 'vencido') {
+                statusBadge.textContent = 'VENCIDO';
+                statusBadge.className = 'status-badge status-vencido';
+            } else {
+                statusBadge.textContent = 'ABERTO';
+                statusBadge.className = 'status-badge status-aberto';
+            }
+
+            // Preencher formulário
+            document.getElementById('numero-parcela').value = 
+                parcelaAtual.numero + '/' + conta.numero_parcelas;
+            document.getElementById('valor-parcela').value = parcelaAtual.valor;
+            document.getElementById('data-vencimento').value = parcelaAtual.data_vencimento;
+            document.getElementById('data-pagamento').value = parcelaAtual.data_pagamento || '';
+            document.getElementById('valor-pago').value = parcelaAtual.valor_pago || '';
+            document.getElementById('status-parcela').value = parcelaAtual.status;
+            document.getElementById('observacoes').value = parcelaAtual.observacoes || '';
+
+            // Desabilitar campos se estiver pago
+            if (isPago) {
+                document.getElementById('valor-parcela').disabled = true;
+                document.getElementById('data-vencimento').disabled = true;
+                document.getElementById('observacoes').disabled = true;
+                document.getElementById('btn-salvar').disabled = true;
+
+                mostrarAlerta('Campos bloqueados pois a parcela está paga. Estorne o pagamento para editar.', 'info');
+            }
+
+            // Configurar botões de ação
+            configurarBotoesAcao(isPago);
+        }
+
+        function mostrarAlerta(mensagem, tipo) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = '<div class="alert alert-' + tipo + '">' + mensagem + '</div>';
+        }
+
+        function configurarBotoesAcao(isPago) {
+            const container = document.getElementById('payment-actions');
+            
+            if (isPago) {
+                container.innerHTML = `
+                    <button type="button" class="btn btn-danger" onclick="estornarParcela()">
+                        Estornar Baixa
+                    </button>
+                `;
+            } else {
+                container.innerHTML = `
+                    <button type="button" class="btn btn-success" onclick="darBaixa()">
+                        Dar Baixa (Pagar Agora)
+                    </button>
+                `;
+            }
+        }
+
+        function salvarParcela(event) {
+            event.preventDefault();
+
+            if (parcelaAtual.status === 'pago') {
+                alert('Não é possível editar uma parcela paga!');
+                return;
+            }
+
+            parcelaAtual.valor = parseFloat(document.getElementById('valor-parcela').value);
+            parcelaAtual.data_vencimento = document.getElementById('data-vencimento').value;
+            parcelaAtual.observacoes = document.getElementById('observacoes').value;
+
+            // Verificar se está vencida
+            const hoje = new Date().toISOString().split('T')[0];
+            if (parcelaAtual.data_vencimento < hoje && parcelaAtual.status !== 'pago') {
+                parcelaAtual.status = 'vencido';
+            }
+
+            // Atualizar no localStorage
+            const contas = JSON.parse(localStorage.getItem('contas') || '[]');
+            const contaIndex = contas.findIndex(c => c.id == contaId);
+            const parcelaIndex = contas[contaIndex].parcelas.findIndex(p => p.id == parcelaId);
+            
+            contas[contaIndex].parcelas[parcelaIndex] = parcelaAtual;
+            localStorage.setItem('contas', JSON.stringify(contas));
+
+            mostrarAlerta('Parcela atualizada com sucesso!', 'success');
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        }
+
+        function darBaixa() {
+            if (!confirm('Confirmar o pagamento desta parcela na data de hoje?')) {
+                return;
+            }
+
+            const hoje = new Date().toISOString().split('T')[0];
+            
+            parcelaAtual.status = 'pago';
+            parcelaAtual.data_pagamento = hoje;
+            parcelaAtual.valor_pago = parcelaAtual.valor;
+
+            // Atualizar no localStorage
+            const contas = JSON.parse(localStorage.getItem('contas') || '[]');
+            const contaIndex = contas.findIndex(c => c.id == contaId);
+            const parcelaIndex = contas[contaIndex].parcelas.findIndex(p => p.id == parcelaId);
+            
+            contas[contaIndex].parcelas[parcelaIndex] = parcelaAtual;
+            
+            // Atualizar saldo da conta
+            contas[contaIndex].saldo = (contas[contaIndex].saldo || 0) + parcelaAtual.valor;
+            
+            localStorage.setItem('contas', JSON.stringify(contas));
+
+            alert('Baixa realizada com sucesso!');
+            window.location.reload();
+        }
+
+        function estornarParcela() {
+            if (!confirm('Tem certeza que deseja estornar a baixa desta parcela?')) {
+                return;
+            }
+
+            parcelaAtual.status = 'aberto';
+            parcelaAtual.data_pagamento = null;
+            const valorPago = parcelaAtual.valor_pago || 0;
+            parcelaAtual.valor_pago = null;
+
+            // Atualizar no localStorage
+            const contas = JSON.parse(localStorage.getItem('contas') || '[]');
+            const contaIndex = contas.findIndex(c => c.id == contaId);
+            const parcelaIndex = contas[contaIndex].parcelas.findIndex(p => p.id == parcelaId);
+            
+            contas[contaIndex].parcelas[parcelaIndex] = parcelaAtual;
+            
+            // Atualizar saldo da conta
+            contas[contaIndex].saldo = (contas[contaIndex].saldo || 0) - valorPago;
+            
+            localStorage.setItem('contas', JSON.stringify(contas));
+
+            alert('Estorno realizado com sucesso!');
+            window.location.reload();
+        }
+
+        document.getElementById('form-parcela').addEventListener('submit', salvarParcela);
+
+        carregarParcela();
+    </script>
+</body>
+</html>

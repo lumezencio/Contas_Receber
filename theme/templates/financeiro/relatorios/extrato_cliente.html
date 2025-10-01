@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Extrato de {{ cliente.nome_completo }}{% endblock %}
+{% block content %}
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-white">Extrato do Cliente</h1>
+        <a href="{% url 'relatorio_cliente_pdf' pk=cliente.pk %}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-300">
+            Baixar PDF
+        </a>
+    </div>
+    
+    {% include 'financeiro/relatorios/extrato_cliente_pdf.html' %}
+{% endblock %}

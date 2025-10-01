@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Confirmar Exclusão da Conta - AEQUITAS{% endblock %}
+{% block content %}
+    <h1 class="text-3xl font-bold text-white mb-6">Confirmar Exclusão</h1>
+    <div class="bg-gray-800 rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
+        <p class="text-lg text-gray-300">
+            Você tem certeza que deseja excluir permanentemente a conta
+            <strong class="font-bold text-white">"{{ conta.descricao }}"</strong>
+            para o cliente <strong class="font-bold text-white">"{{ conta.cliente.nome_completo }}"</strong>?
+        </p>
+        <p class="mt-2 text-sm text-red-400">Todas as suas parcelas também serão apagadas. Esta ação não pode ser desfeita.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mt-8 flex justify-end space-x-4">
+                <a href="{% url 'financeiro:conta_detail' pk=conta.pk %}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancelar</a>
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">Confirmar Exclusão</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

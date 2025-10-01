@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalhes da Conta - AEQUITAS{% endblock %}
+
+{% block content %}
+{# 
+  MELHORIA: 
+  Em vez de 3 variáveis para cada modal (showDeleteModal, showBaixaModal, etc.),
+  usaremos um único conjunto de variáveis para um modal genérico. Isso limpa o código.
+#}
+<div x-data="{ 
+    showModal: false, 
+    modalTitle: '', 
+    modalMessage: '',
+    modalActionUrl: '',
+    modalButtonText: '',
+    modalButtonClass: ''
+}">
+
+    <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-white">{{ conta.descricao }}</h1>
+                <p class="text-lg text-gray-400">Cliente: {{ conta.cliente.nome_completo }}</p>
+            </div>
+            <div class="flex space-x-2">
+                <a href="{% url 'financeiro:conta_update' pk=conta.pk %}" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg">Editar Descrição</a>
+                
+                {# BOTÃO DE EXCLUIR: Configura as variáveis do modal e o abre #}
+                <button 
+                    @click="
+                        showModal = true; 
+                        modalTitle = 'Confirmar Exclusão de Conta';
+                        modalMessage = 'Tem certeza que deseja excluir esta conta e TODAS as suas parcelas? Esta ação não pode ser desfeita.';
+                        modalActionUrl = '{% url 'financeiro:conta_delete' pk=conta.pk %}';
+                        modalButtonText = 'Confirmar Exclusão';
+                        modalButtonClass = 'bg-red-600 hover:bg-red-700';
+                    " 
+                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">
+                    Excluir Conta
+                </button>
+            </div>
+        </div>
+        <div class="mt-6 border-t border-gray-700 pt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div><p class="text-sm text-gray-400">Valor Total</p><p class="text-2xl font-semibold text-cyan-400">R$ {{ conta.valor_total|floatformat:2 }}</p></div>
+            <div><p class="text-sm text-gray-400">Nº de Parcelas</p><p class="text-2xl font-semibold text-white">{{ conta.numero_parcelas }}</p></div>
+            <div><p class="text-sm text-gray-400">Data do Lançamento</p><p class="text-2xl font-semibold text-white">{{ conta.data_lancamento|date:"d/m/Y" }}</p></div>
+        </div>
+    </div>
+
+    <h2 class="text-2xl font-bold text-white mb-4">Parcelas</h2>
+    <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <table class="min-w-full">
+            <thead class="bg-gray-700">
+                <tr>
+                    <th class="py-3 px-6 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Nº</th>
+                    <th class="py-3 px-6 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Vencimento</th>
+                    <th class="py-3 px-6 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Valor</th>
+                    <th class="py-3 px-6 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                    <th class="py-3 px-6 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700 text-gray-200">
+                {% for parcela in parcelas %}
+                <tr>
+                    <td class="py-4 px-6 text-center whitespace-nowrap">{{ parcela.numero_parcela }}</td>
+                    <td class="py-4 px-6 whitespace-nowrap">{{ parcela.data_vencimento|date:"d/m/Y" }}</td>
+                    <td class="py-4 px-6 whitespace-nowrap">R$ {{ parcela.valor_parcela|floatformat:2 }}</td>
+                    <td class="py-4 px-6 text-center whitespace-nowrap">
+                        {% if parcela.status == 'PAGA' %}<span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">PAGA</span>
+                        {% elif parcela.status == 'VENCIDA' %}<span class="px-2 py-1 text-xs font-semibold text-red-800 bg-red-200 rounded-full">VENCIDA</span>
+                        {% else %}<span class="px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full">A VENCER</span>{% endif %}
+                    </td>
+                    <td class="py-4 px-6 text-center whitespace-nowrap space-x-2">
+                        {% if parcela.status != 'PAGA' %}
+                            <a href="{% url 'financeiro:parcela_update' pk=parcela.pk %}" class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold">Editar</a>
+                            
+                            {# BOTÃO DAR BAIXA: Configura as variáveis do modal e o abre #}
+                            <button 
+                                @click="
+                                    showModal = true; 
+                                    modalTitle = 'Confirmar Baixa de Parcela';
+                                    modalMessage = 'Tem certeza que deseja marcar esta parcela como PAGA?';
+                                    modalActionUrl = '{% url 'financeiro:parcela_dar_baixa' pk=parcela.pk %}';
+                                    modalButtonText = 'Confirmar Baixa';
+                                    modalButtonClass = 'bg-green-600 hover:bg-green-700';
+                                " 
+                                class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-1 px-3 rounded-lg">
+                                Dar Baixa
+                            </button>
+                        {% else %}
+                            <span class="text-xs text-gray-500 mr-2">Pago em {{ parcela.data_pagamento|date:"d/m/Y" }}</span>
+                            
+                            {# BOTÃO ESTORNAR: Configura as variáveis do modal e o abre #}
+                            <button 
+                                @click="
+                                    showModal = true; 
+                                    modalTitle = 'Confirmar Estorno';
+                                    modalMessage = 'Deseja estornar o pagamento desta parcela? Ela voltará ao status anterior.';
+                                    modalActionUrl = '{% url 'financeiro:parcela_estornar' pk=parcela.pk %}';
+                                    modalButtonText = 'Confirmar Estorno';
+                                    modalButtonClass = 'bg-yellow-600 hover:bg-yellow-700';
+                                " 
+                                class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold py-1 px-3 rounded-lg">
+                                Estornar
+                            </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div x-show="showModal" x-transition class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" style="display: none;">
+        <div @click.away="showModal = false" class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-full max-w-md">
+            
+            <h3 class="text-xl font-bold text-white" x-text="modalTitle"></h3>
+            <p class="mt-2 text-gray-300" x-text="modalMessage"></p>
+            
+            <div class="mt-6 flex justify-end space-x-4">
+                <button @click="showModal = false" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg">Cancelar</button>
+                
+                <form :action="modalActionUrl" method="post" class="inline">
+                    {% csrf_token %}
+                    <button 
+                        type="submit" 
+                        class="px-4 py-2 text-white font-bold rounded-lg"
+                        :class="modalButtonClass" 
+                        x-text="modalButtonText">
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
