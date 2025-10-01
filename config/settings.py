@@ -1,30 +1,47 @@
 # config/settings.py
-from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+import os
+from pathlib import Path
+from decouple import config
+
+# --- Configurações Principais ---
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-aequitas-secret-key-placeholder'
+# --- Configurações de Segurança (lidas do arquivo .env) ---
+SECRET_KEY = config('SECRET_KEY')
+DEBUG = config('DEBUG', default=False, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+# =============================================================================
+# DEFINIÇÃO DE APLICAÇÕES (COM ORDEM CORRIGIDA)
+# =============================================================================
+# Seus apps locais vêm PRIMEIRO para garantir que seus templates 
+# (como o de login/logout) substituam os templates padrão do Django.
 
-# Application definition
-INSTALLED_APPS = [
+LOCAL_APPS = [
+    'financeiro',
+    'theme',
+]
+
+THIRD_PARTY_APPS = [
+    'tailwind',
+]
+
+DJANGO_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'financeiro',
-    'tailwind',
-    'theme',
 ]
 
+# A ordem correta: Locais > Terceiros > Padrão Django
+INSTALLED_APPS = LOCAL_APPS + THIRD_PARTY_APPS + DJANGO_APPS
+
+
+# --- Middlewares ---
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -35,8 +52,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'config.urls'
 
+# --- Configurações de URL e WSGI ---
+ROOT_URLCONF = 'config.urls'
+WSGI_APPLICATION = 'config.wsgi.application'
+
+
+# --- Templates ---
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -53,9 +75,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database
+# --- Banco de Dados ---
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -63,40 +84,44 @@ DATABASES = {
     }
 }
 
-# Password validation
+
+# --- Validação de Senhas ---
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+
+# --- Internacionalização ---
 LANGUAGE_CODE = 'pt-br'
-
 TIME_ZONE = 'America/Sao_Paulo'
-
 USE_I18N = True
-
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
 
-# Default primary key field type
+# --- Arquivos Estáticos (CSS, JavaScript, Imagens) ---
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+
+# --- Configurações Padrão do Django ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Tailwind CSS
-TAILWIND_APP_NAME = 'theme'
 
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+# --- Configurações de Terceiros (Tailwind) ---
+TAILWIND_APP_NAME = 'theme'
+INTERNAL_IPS = ["127.0.0.1"]
+
+
+# =============================================================================
+# SEÇÃO DE AUTENTICAÇÃO
+# =============================================================================
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = '/'
+# A linha LOGOUT_REDIRECT_URL não é necessária, pois o Django usará 
+# o template 'registration/logged_out.html' por padrão.

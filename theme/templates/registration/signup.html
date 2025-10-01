@@ -1,32 +1,23 @@
-{% extends "base_interno.html" %} {% block title %}{{ titulo|default:"Formulário" }} - AEQUITAS{% endblock %}
+{% extends "base_interno.html" %} {% block title %}{{ titulo }} - AEQUITAS{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto py-10">
-
     <div class="mb-8 text-center">
         <h1 class="text-4xl font-bold text-white mb-2">{{ titulo }}</h1>
-        <p class="text-gray-400">Preencha os campos necessários abaixo.</p>
+        <p class="text-gray-400">Crie uma nova conta de acesso para um membro da equipe.</p>
     </div>
 
     <div class="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden">
         <form method="post" novalidate>
             {% csrf_token %}
-            
             <div class="p-8">
-                {% if form.non_field_errors %}
-                    <div class="bg-red-900/50 text-red-300 border border-red-700 rounded-lg p-4 mb-6">
-                        {% for error in form.non_field_errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                <div class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                     {% for field in form %}
                         <div>
                             <label for="{{ field.id_for_label }}" class="block text-sm font-semibold text-gray-300">{{ field.label }}</label>
                             <div class="mt-2">
-                                {{ field }} </div>
+                                {{ field }}
+                            </div>
                             {% for error in field.errors %}
                                 <p class="mt-1 text-xs text-red-500">{{ error }}</p>
                             {% endfor %}
@@ -37,16 +28,10 @@
                     {% endfor %}
                 </div>
             </div>
-
-            <div class="bg-gray-900/50 px-8 py-4 flex items-center justify-end space-x-4 border-t border-gray-700">
-                <a href="{{ request.META.HTTP_REFERER|default:_('financeiro:conta_list') }}"
-                   class="px-5 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-700 rounded-lg transition-colors duration-300">
-                    Cancelar
-                </a>
+            <div class="bg-gray-900/50 px-8 py-4 flex items-center justify-end">
                 <button type="submit" 
                         class="inline-flex items-center px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold rounded-lg shadow-lg hover:shadow-cyan-500/30 transition-all duration-300 transform hover:scale-105">
-                    <i class="fas fa-save mr-2"></i>
-                    Salvar
+                    Cadastrar Funcionário
                 </button>
             </div>
         </form>

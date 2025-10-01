@@ -1,11 +1,16 @@
 # financeiro/forms.py
+
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 from .models import Cliente, ContaReceber, Parcela
 from django.core.exceptions import ValidationError
 from datetime import date
 import re
 
-# (Funções validate_cpf, validate_cnpj, etc. continuam aqui, sem alterações)
+# ==============================================================================
+# FUNÇÕES AUXILIARES DE VALIDAÇÃO
+# ==============================================================================
 def limpar_documento(documento: str) -> str:
     if not documento: return ''
     return ''.join(re.findall(r'\d', str(documento)))
@@ -36,11 +41,9 @@ def validate_cnpj(cnpj: str) -> bool:
     if digito_2 != int(cnpj[13]): return False
     return True
 
-# ============================================================
-# CORREÇÃO: Mixin de formulário mais neutro e profissional
-# Removemos as cores de fundo e texto fixas, permitindo
-# que o template controle o design.
-# ============================================================
+# ==============================================================================
+# MIXIN DE ESTILIZAÇÃO PARA FORMULÁRIOS
+# ==============================================================================
 class FormStylingMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -48,24 +51,47 @@ class FormStylingMixin:
             widget = field.widget
             
             base_classes = 'w-full rounded-lg px-4 py-3 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-500'
+            light_theme_classes = 'bg-gray-100 border border-gray-200 text-gray-800 placeholder-gray-400 focus:bg-white'
             
-            # Estilo para inputs de texto, email, etc.
-            if isinstance(widget, (forms.TextInput, forms.EmailInput, forms.NumberInput, forms.DateInput)):
-                widget.attrs.update({'class': f'{base_classes} bg-gray-100 border border-gray-200 text-gray-800 placeholder-gray-400 focus:bg-white'})
+            # Aplica classes a todos os tipos de input comuns
+            if isinstance(widget, (forms.TextInput, forms.EmailInput, forms.NumberInput, forms.DateInput, forms.PasswordInput)):
+                widget.attrs.update({'class': f'{base_classes} {light_theme_classes}'})
 
-            # Estilo para textareas
             elif isinstance(widget, forms.Textarea):
-                widget.attrs.update({'class': f'{base_classes} bg-gray-100 border border-gray-200 text-gray-800 placeholder-gray-400 focus:bg-white', 'rows': 4})
+                widget.attrs.update({'class': f'{base_classes} {light_theme_classes}', 'rows': 4})
             
-            # Estilo para selects
             elif isinstance(widget, forms.Select):
-                widget.attrs.update({'class': f'{base_classes} bg-gray-100 border border-gray-200 text-gray-800'})
+                widget.attrs.update({'class': f'{base_classes} {light_theme_classes}'})
 
-# (As definições de formulário agora usam o novo mixin)
+# ==============================================================================
+# FORMULÁRIO DE CRIAÇÃO DE USUÁRIO
+# ==============================================================================
+class CustomUserCreationForm(FormStylingMixin, UserCreationForm):
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ("username", "first_name", "last_name", "email")
+        labels = {
+            "username": "Nome de Usuário",
+            "first_name": "Primeiro Nome",
+            "last_name": "Sobrenome",
+            "email": "E-mail",
+        }
+
+# ==============================================================================
+# FORMULÁRIO DE CLIENTE
+# ==============================================================================
 class ClienteForm(FormStylingMixin, forms.ModelForm):
     class Meta:
         model = Cliente
         fields = ['nome_completo', 'cpf_cnpj', 'email', 'telefone', 'endereco', 'observacoes']
+        labels = {
+            'nome_completo': 'Nome Completo',
+            'cpf_cnpj': 'CPF ou CNPJ',
+            'email': 'E-mail',
+            'telefone': 'Telefone de Contato',
+            'endereco': 'Endereço',
+            'observacoes': 'Observações'
+        }
 
     def clean_nome_completo(self):
         nome = self.cleaned_data.get('nome_completo', '')
@@ -88,11 +114,44 @@ class ClienteForm(FormStylingMixin, forms.ModelForm):
         if queryset.exists(): raise ValidationError('Já existe um cliente cadastrado com este documento.')
         return cpf_cnpj
 
+# ==============================================================================
+# FORMULÁRIO DE CONTA A RECEBER
+# ==============================================================================
 class ContaReceberForm(FormStylingMixin, forms.ModelForm):
     data_vencimento_primeira_parcela = forms.DateField(label='Data de Vencimento da 1ª Parcela', widget=forms.DateInput(attrs={'type': 'date'}))
+    
     class Meta:
         model = ContaReceber
         fields = ['cliente', 'descricao', 'valor_total', 'numero_parcelas', 'data_vencimento_primeira_parcela', 'observacoes']
+        labels = {
+            'cliente': 'Cliente',
+            'descricao': 'Descrição da Conta',
+            'valor_total': 'Valor Total (R$)',
+            'numero_parcelas': 'Número de Parcelas',
+            'observacoes': 'Observações (Opcional)'
+        }
+
+# ==============================================================================
+# FORMULÁRIOS DE ATUALIZAÇÃO
+# ==============================================================================
+class ContaReceberUpdateForm(FormStylingMixin, forms.ModelForm):
+    class Meta:
+        model = ContaReceber
+        fields = ['descricao', 'observacoes']
+        labels = {
+            'descricao': 'Descrição da Conta',
+            'observacoes': 'Observações'
+        }
+
+class ParcelaUpdateForm(FormStylingMixin, forms.ModelForm):
+    data_vencimento = forms.DateField(
+        label='Data de Vencimento',
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
     
-    # ... (o resto das suas classes de formulário continua aqui)
-# ...
+    class Meta:
+        model = Parcela
+        fields = ['valor_parcela', 'data_vencimento']
+        labels = {
+            'valor_parcela': 'Valor da Parcela (R$)'
+        }

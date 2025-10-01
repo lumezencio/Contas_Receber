@@ -1,10 +1,10 @@
 # financeiro/models.py
 
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.core.validators import MinValueValidator
 from django.utils import timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 from datetime import date
 
 
@@ -15,6 +15,7 @@ class Cliente(models.Model):
     email = models.EmailField(blank=True, null=True, verbose_name="E-mail")
     endereco = models.TextField(blank=True, null=True, verbose_name="Endereço")
     observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+    ativo = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
 
@@ -46,58 +47,40 @@ class ContaReceber(models.Model):
         return f"{self.descricao} - {self.cliente.nome_completo}"
 
     def total_pago(self):
-        """Calcula o valor total já pago nas parcelas."""
         total = self.parcelas.filter(status='pago').aggregate(total=Sum('valor_parcela'))['total']
         return total or Decimal('0.00')
 
     def total_pendente(self):
-        """Calcula o valor ainda em aberto (aberto + vencido)."""
         total = self.parcelas.filter(status__in=['aberto', 'vencido']).aggregate(total=Sum('valor_parcela'))['total']
         return total or Decimal('0.00')
 
     def get_parcelas_info(self):
-        """Retorna uma string com o progresso das parcelas (ex: "3 de 12")."""
         total = self.parcelas.count()
         pagas = self.parcelas.filter(status='pago').count()
         return f"{pagas} de {total}"
 
     def get_status_info(self):
-        """
-        Retorna um dicionário com o texto do status e as classes CSS do Tailwind.
-        Esta é a "fonte da verdade" para a exibição do status.
-        """
         total_parcelas = self.parcelas.count()
         if total_parcelas == 0:
-            return {'text': 'Sem Parcelas', 'classes': 'bg-gray-700 text-gray-300 border-gray-600'}
-
+            return {'text': 'Sem Parcelas', 'icon': 'bg-gray-400', 'badge': 'bg-gray-700 text-gray-300 border-gray-600'}
         parcelas_pagas = self.parcelas.filter(status='pago').count()
-        
         if parcelas_pagas == total_parcelas:
-            return {
-                'text': 'Quitada',
-                'icon_classes': 'bg-green-400',
-                'badge_classes': 'bg-green-900/30 text-green-400 border border-green-700'
-            }
-
+            return {'text': 'Quitada', 'icon': 'bg-green-400', 'badge': 'bg-green-900/30 text-green-400 border border-green-700'}
         if self.parcelas.filter(status='vencido').exists():
-            return {
-                'text': 'Vencida',
-                'icon_classes': 'bg-red-400 animate-pulse',
-                'badge_classes': 'bg-red-900/30 text-red-400 border border-red-700'
-            }
-
+            return {'text': 'Vencida', 'icon': 'bg-red-400 animate-pulse', 'badge': 'bg-red-900/30 text-red-400 border border-red-700'}
         if parcelas_pagas > 0:
-            return {
-                'text': 'Parcialmente Pago',
-                'icon_classes': 'bg-blue-400',
-                'badge_classes': 'bg-blue-900/30 text-blue-400 border border-blue-700'
-            }
-        
-        return {
-            'text': 'Em Aberto',
-            'icon_classes': 'bg-yellow-400',
-            'badge_classes': 'bg-yellow-900/30 text-yellow-400 border border-yellow-700'
-        }
+            return {'text': 'Parcial', 'icon': 'bg-blue-400', 'badge': 'bg-blue-900/30 text-blue-400 border border-blue-700'}
+        return {'text': 'Em Aberto', 'icon': 'bg-yellow-400', 'badge': 'bg-yellow-900/30 text-yellow-400 border border-yellow-700'}
+
+    def get_percentual_pago(self):
+        """
+        NOVO MÉTODO: Calcula a porcentagem do valor total que já foi pago.
+        Essencial para a barra de progresso.
+        """
+        if self.valor_total == 0:
+            return 0
+        percentual = (self.total_pago() / self.valor_total) * 100
+        return int(percentual.quantize(Decimal('1'), rounding=ROUND_DOWN))
 
 
 class Parcela(models.Model):

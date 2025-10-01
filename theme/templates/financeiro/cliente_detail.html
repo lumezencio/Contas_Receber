@@ -1,0 +1,74 @@
+{% extends "base_interno.html" %}
+
+{% block title %}Detalhes de {{ cliente.nome_completo }} - AEQUITAS{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row md:items-start md:justify-between mb-8">
+    <div>
+        <a href="{% url 'financeiro:cliente_list' %}" class="text-cyan-400 hover:text-cyan-300 transition-colors text-sm"><i class="fas fa-arrow-left mr-2"></i>Voltar para Clientes</a>
+        <h1 class="text-3xl font-bold text-white mt-2">{{ cliente.nome_completo }}</h1>
+        <p class="text-gray-400">CPF/CNPJ: {{ cliente.cpf_cnpj|default:"Não informado" }}</p>
+    </div>
+    <div class="mt-4 md:mt-0 flex space-x-2">
+        <a href="{% url 'financeiro:cliente_update' pk=cliente.pk %}" 
+           class="inline-flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors">
+            <i class="fas fa-pencil-alt mr-2"></i> Editar Cliente
+        </a>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+        <h3 class="text-lg font-semibold text-white mb-2">Contato</h3>
+        <p class="text-gray-400"><i class="fas fa-phone fa-fw mr-2"></i>{{ cliente.telefone|default:"Não informado" }}</p>
+        <p class="text-gray-400"><i class="fas fa-envelope fa-fw mr-2"></i>{{ cliente.email|default:"Não informado" }}</p>
+    </div>
+    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 lg:col-span-2">
+        <h3 class="text-lg font-semibold text-white mb-2">Endereço</h3>
+        <p class="text-gray-400">{{ cliente.endereco|default:"Não informado"|linebreaksbr }}</p>
+    </div>
+</div>
+
+<div class="bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
+    <div class="p-6 border-b border-gray-700">
+        <h2 class="text-xl font-bold text-white">Contas a Receber Associadas</h2>
+    </div>
+    {% if contas %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-700">
+            <thead class="bg-gray-900/50">
+                <tr>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Descrição</th>
+                    <th scope="col" class="px-6 py-4 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Valor Total</th>
+                    <th scope="col" class="px-6 py-4 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Progresso</th>
+                    <th scope="col" class="px-6 py-4 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-6 py-4 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Lançamento</th>
+                </tr>
+            </thead>
+            <tbody class="bg-gray-800 divide-y divide-gray-700">
+                {% for conta in contas %}
+                <tr class="hover:bg-gray-700/50 transition-colors cursor-pointer" onclick="window.location.href='{% url 'financeiro:conta_detail' pk=conta.pk %}'">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{{ conta.descricao }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-semibold text-cyan-400">R$ {{ conta.valor_total|floatformat:2 }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-300 font-mono">{{ conta.get_parcelas_info }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        {% with status=conta.get_status_info %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ status.badge }}">
+                            <span class="w-2 h-2 mr-2 rounded-full {{ status.icon }}"></span>
+                            {{ status.text }}
+                        </span>
+                        {% endwith %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-400">{{ conta.data_emissao|date:"d/m/Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center p-8">
+        <p class="text-gray-400">Nenhuma conta a receber encontrada para este cliente.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
