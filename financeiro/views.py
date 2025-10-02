@@ -1,5 +1,7 @@
 # financeiro/views.py
 
+import os
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Sum, ProtectedError, Q
 from django.http import HttpResponse
@@ -242,9 +244,15 @@ def gerar_recibo_pdf(request, pk):
         messages.error(request, "Não é possível gerar recibo para parcelas não pagas.")
         return redirect('financeiro:conta_detail', pk=parcela.conta.pk)
     
+    logo_path = os.path.join(settings.BASE_DIR, 'financeiro', 'static', 'financeiro', 'images', 'logo.png')
+    
     context = {
-        'parcela': parcela, 'conta': parcela.conta, 'cliente': parcela.conta.cliente,
-        'data_emissao': timezone.now().date(), 'valor_extenso': numero_para_extenso(parcela.valor_parcela)
+        'parcela': parcela, 
+        'conta': parcela.conta, 
+        'cliente': parcela.conta.cliente,
+        'data_emissao': timezone.now().date(), 
+        'valor_extenso': numero_para_extenso(parcela.valor_parcela),
+        'logo_path': logo_path
     }
     html_string = render_to_string('financeiro/documentos/recibo_pdf.html', context)
     response = HttpResponse(content_type='application/pdf')
