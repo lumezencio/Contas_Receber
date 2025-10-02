@@ -46,15 +46,15 @@ class Cliente(models.Model):
         return self.telefone
 
 class ContaReceber(models.Model):
-    """Representa uma obrigação financeira a ser recebida de um Cliente."""
-    cliente: Cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='contas', verbose_name="Cliente")
-    descricao: str = models.CharField(max_length=200, verbose_name="Descrição")
-    valor_total: Decimal = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], verbose_name="Valor Total")
-    numero_parcelas: int = models.IntegerField(default=1, validators=[MinValueValidator(1)], verbose_name="Número de Parcelas")
-    data_emissao: date = models.DateField(verbose_name="Data de Emissão")
-    observacoes: Union[str, None] = models.TextField(blank=True, null=True, verbose_name="Observações")
-    created_at: date = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
-    updated_at: date = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+    # ... (código da classe ContaReceber como estava, sem alterações)
+    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='contas', verbose_name="Cliente")
+    descricao = models.CharField(max_length=200, verbose_name="Descrição")
+    valor_total = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], verbose_name="Valor Total")
+    numero_parcelas = models.IntegerField(default=1, validators=[MinValueValidator(1)], verbose_name="Número de Parcelas")
+    data_emissao = models.DateField(verbose_name="Data de Emissão")
+    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
 
     class Meta:
         verbose_name = "Conta a Receber"
@@ -91,8 +91,8 @@ class ContaReceber(models.Model):
         percentual = (self.total_pago() / self.valor_total) * 100
         return int(percentual.quantize(Decimal('1'), rounding=ROUND_DOWN))
 
+
 class Parcela(models.Model):
-    """Representa uma única parcela de uma Conta a Receber."""
     STATUS_CHOICES = [('aberto', 'Aberto'), ('pago', 'Pago'), ('vencido', 'Vencido')]
     conta = models.ForeignKey(ContaReceber, on_delete=models.CASCADE, related_name='parcelas', verbose_name="Conta")
     numero_parcela = models.IntegerField(verbose_name="Número da Parcela")
@@ -114,12 +114,6 @@ class Parcela(models.Model):
         return f"Parcela {self.numero_parcela}/{self.conta.numero_parcelas} - {self.conta.descricao}"
 
     def save(self, *args, **kwargs):
-        """
-        Sobrescreve o método save para incluir lógicas de negócio avançadas:
-        1. Atualiza o status da parcela com base na data de pagamento/vencimento.
-        2. Se o valor de uma parcela for alterado, rebalanceia automaticamente
-           o valor das outras parcelas em aberto para manter a soma total.
-        """
         if self.data_pagamento: self.status = 'pago'
         elif self.status != 'pago' and self.data_vencimento < date.today(): self.status = 'vencido'
         elif self.status != 'pago': self.status = 'aberto'
@@ -127,7 +121,7 @@ class Parcela(models.Model):
         if not self._state.adding and self.pk:
             try:
                 versao_antiga = Parcela.objects.get(pk=self.pk)
-                if versao_antiga.valor_parcela != self.valor_parcela and self.status != 'pago':
+                if versao_antiga.valor_parcela != self.valor_parcela:
                     with transaction.atomic():
                         super().save(*args, **kwargs)
                         conta = self.conta
