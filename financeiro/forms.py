@@ -9,10 +9,12 @@ from datetime import date
 import re
 
 def limpar_documento(documento: str) -> str:
+    """Remove caracteres não numéricos de CPF/CNPJ."""
     if not documento: return ''
     return ''.join(re.findall(r'\d', str(documento)))
 
 def validate_cpf(cpf: str) -> bool:
+    """Valida CPF brasileiro segundo algoritmo oficial."""
     cpf = limpar_documento(cpf)
     if not cpf or len(cpf) != 11 or cpf == cpf[0] * 11: return False
     soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
@@ -24,6 +26,7 @@ def validate_cpf(cpf: str) -> bool:
     return True
 
 def validate_cnpj(cnpj: str) -> bool:
+    """Valida CNPJ brasileiro segundo algoritmo oficial."""
     cnpj = limpar_documento(cnpj)
     if not cnpj or len(cnpj) != 14 or cnpj == cnpj[0] * 14: return False
     multiplicadores_1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
