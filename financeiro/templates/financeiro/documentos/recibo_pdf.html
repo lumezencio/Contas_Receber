@@ -38,6 +38,9 @@ Set-Content -Path "financeiro\templates\financeiro\documentos\recibo_pdf.html" -
             padding-bottom: 20px;
             margin-bottom: 50px;
         }
+        .header .logo-container {
+            flex: 0 0 auto;
+        }
         .header .logo-container img {
             max-width: 180px;
             border-radius: 12px;
@@ -47,6 +50,7 @@ Set-Content -Path "financeiro\templates\financeiro\documentos\recibo_pdf.html" -
             font-size: 9pt;
             color: #4a5568;
             line-height: 1.5;
+            flex: 1;
         }
         .header .issuer-details strong {
             font-weight: 700;
@@ -123,7 +127,7 @@ Set-Content -Path "financeiro\templates\financeiro\documentos\recibo_pdf.html" -
     <div class="content-wrapper">
         <header class="header">
             <div class="logo-container">
-                <img src="file://{{ logo_path }}" alt="Logotipo Mezencio Advocacia">
+                <img src="file://{{ logo_path }}" alt="Mezencio Advocacia">
             </div>
             <div class="issuer-details">
                 <strong>MEZENCIO SOCIEDADE INDIVIDUAL DE ADVOCACIA</strong><br>
