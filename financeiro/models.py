@@ -1,12 +1,12 @@
 # financeiro/models.py
 
 from django.db import models
-from django.db.models import Sum, Q
+from django.db.models import Sum, F
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 from decimal import Decimal, ROUND_DOWN
 from datetime import date
-
+import re
 
 class Cliente(models.Model):
     nome_completo = models.CharField(max_length=200, verbose_name="Nome Completo")
@@ -26,7 +26,17 @@ class Cliente(models.Model):
 
     def __str__(self):
         return self.nome_completo
-
+    
+    def get_telefone_formatado(self):
+        if not self.telefone:
+            return "Não informado"
+        numeros = re.sub(r'\D', '', self.telefone)
+        if len(numeros) == 11:
+            return f"({numeros[:2]}) {numeros[2:7]}-{numeros[7:]}"
+        elif len(numeros) == 10:
+            return f"({numeros[:2]}) {numeros[2:6]}-{numeros[6:]}"
+        else:
+            return self.telefone
 
 class ContaReceber(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='contas', verbose_name="Cliente")
@@ -73,10 +83,6 @@ class ContaReceber(models.Model):
         return {'text': 'Em Aberto', 'icon': 'bg-yellow-400', 'badge': 'bg-yellow-900/30 text-yellow-400 border border-yellow-700'}
 
     def get_percentual_pago(self):
-        """
-        NOVO MÉTODO: Calcula a porcentagem do valor total que já foi pago.
-        Essencial para a barra de progresso.
-        """
         if self.valor_total == 0:
             return 0
         percentual = (self.total_pago() / self.valor_total) * 100
@@ -105,10 +111,50 @@ class Parcela(models.Model):
         return f"Parcela {self.numero_parcela}/{self.conta.numero_parcelas} - {self.conta.descricao}"
 
     def save(self, *args, **kwargs):
+        # Flag para controlar a recursão e o rebalanceamento
+        rebalancear = kwargs.pop('rebalancear', True)
+        
+        # Lógica para detectar se o valor da parcela mudou
+        valor_mudou = False
+        if not self._state.adding and self.pk:
+            try:
+                versao_antiga = Parcela.objects.get(pk=self.pk)
+                if versao_antiga.valor_parcela != self.valor_parcela:
+                    valor_mudou = True
+            except Parcela.DoesNotExist:
+                pass
+
+        # Lógica de atualização de status (executada antes de salvar)
         if self.data_pagamento:
             self.status = 'pago'
         elif self.status != 'pago' and self.data_vencimento < date.today():
             self.status = 'vencido'
         elif self.status != 'pago' and self.data_vencimento >= date.today():
             self.status = 'aberto'
+        
+        # Salva a alteração atual da parcela
         super().save(*args, **kwargs)
+
+        # ==============================================================================
+        # NOVA LÓGICA PROFISSIONAL DE REBALANCEAMENTO AUTOMÁTICO
+        # ==============================================================================
+        if valor_mudou and rebalancear:
+            conta = self.conta
+            
+            # Calcula a soma de todas as parcelas após a alteração
+            soma_atual = conta.parcelas.aggregate(s=Sum('valor_parcela'))['s'] or Decimal('0.00')
+            
+            # Calcula a diferença para o valor total da conta
+            diferenca = conta.valor_total - soma_atual
+            
+            # Encontra a última parcela não paga (que não seja a que acabamos de editar)
+            # É nela que a diferença será aplicada.
+            ultima_parcela_ajustavel = conta.parcelas.filter(
+                status__in=['aberto', 'vencido']
+            ).exclude(pk=self.pk).order_by('-numero_parcela').first()
+
+            if ultima_parcela_ajustavel:
+                # Usa F() expression para uma atualização atômica e segura no banco de dados
+                Parcela.objects.filter(pk=ultima_parcela_ajustavel.pk).update(
+                    valor_parcela=F('valor_parcela') + diferenca
+                )
