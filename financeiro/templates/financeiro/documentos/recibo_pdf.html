@@ -1,3 +1,4 @@
+Set-Content -Path "financeiro\templates\financeiro\documentos\recibo_pdf.html" -Encoding UTF8 -Value @"
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -6,12 +7,9 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 
-        /* ======================================================= */
-        /* CORREÇÃO 1: REMOVENDO A "BORDA" DA PÁGINA               */
-        /* ======================================================= */
         @page {
             size: A4;
-            margin: 0; /* Remove a margem branca ao redor da página */
+            margin: 0;
         }
         
         body {
@@ -21,23 +19,15 @@
             line-height: 1.6;
             margin: 0;
             padding: 0;
-            
-            /* ======================================================= */
-            /* CORREÇÃO 2: NOVO FUNDO HOLOGRÁFICO SUAVE (PÁGINA INTEIRA) */
-            /* ======================================================= */
             background-color: #fdfdff;
-            /* Múltiplos gradientes radiais suaves para simular um brilho iridescente */
             background-image: 
                 radial-gradient(at 0% 0%, rgba(220, 230, 255, 0.4) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, rgba(255, 220, 230, 0.4) 0px, transparent 50%),
                 radial-gradient(at 90% 10%, rgba(220, 255, 230, 0.3) 0px, transparent 40%);
         }
 
-        /* ======================================================= */
-        /* CORREÇÃO 3: CONTAINER COM MARGENS INTERNAS PARA O CONTEÚDO*/
-        /* ======================================================= */
         .content-wrapper {
-            padding: 2.5cm; /* Mantém o conteúdo em uma área de leitura segura */
+            padding: 2.5cm;
         }
 
         .header {
@@ -130,12 +120,10 @@
 </head>
 <body>
     
-    {% load static %}
-    
     <div class="content-wrapper">
         <header class="header">
             <div class="logo-container">
-                <img src="{% static 'financeiro/images/logo.png' %}" alt="Logotipo Mezencio Advocacia">
+                <img src="{{ logo_path }}" alt="Logotipo Mezencio Advocacia">
             </div>
             <div class="issuer-details">
                 <strong>MEZENCIO SOCIEDADE INDIVIDUAL DE ADVOCACIA</strong><br>
@@ -180,8 +168,9 @@
                 <strong>Dr. Luciano Henrique Mezencio</strong><br>
                 OAB/MG: 165.740
             </div>
-        </div>
+        </signature-section>
     </div>
 
 </body>
 </html>
+"@
