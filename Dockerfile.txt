@@ -1,22 +1,24 @@
-# Dockerfile
+# Dockerfile para o Projeto Lexio
+# Define um ambiente de produção robusto e completo para a aplicação Django.
 
 # ==============================================================================
-# ESTÁGIO 1: Construção do Ambiente com Dependências de Sistema
+# ESTÁGIO 1: Imagem Base e Dependências de Sistema
+# Partimos de uma imagem oficial do Python, otimizada para produção (slim).
 # ==============================================================================
-# Usamos uma imagem oficial e enxuta do Python como base
 FROM python:3.12-slim
 
-# Define o diretório de trabalho dentro do container
+# Define o diretório de trabalho dentro do container para manter o projeto organizado.
 WORKDIR /app
 
-# Define variáveis de ambiente para otimizar o Python
+# Define variáveis de ambiente para otimizar a performance do Python em produção.
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # ==============================================================================
-# A CORREÇÃO SUPREMA PARA O ERRO DO RECIBO PDF
-# Instala as bibliotecas de sistema operacional que o WeasyPrint precisa para
-# renderizar fontes, gráficos e PDFs corretamente no ambiente Linux do Render.
+# A CORREÇÃO SUPREMA PARA O ERRO DO RECIBO PDF (ERRO 500)
+# Instalamos, via gerenciador de pacotes do Linux (apt-get), as bibliotecas de
+# sistema que a biblioteca WeasyPrint necessita para renderizar fontes,
+# gráficos e, finalmente, os PDFs.
 # ==============================================================================
 RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
@@ -28,21 +30,23 @@ RUN apt-get update && apt-get install -y \
 # ==============================================================================
 # ESTÁGIO 2: Instalação das Dependências Python
 # ==============================================================================
-# Copia apenas o arquivo de dependências primeiro para aproveitar o cache do Docker
+# Copiamos apenas o arquivo de dependências primeiro. Isso otimiza o cache do Docker,
+# fazendo com que builds futuros sejam muito mais rápidos se as dependências não mudarem.
 COPY requirements.txt .
 
-# Instala as dependências Python
+# Instala as bibliotecas Python listadas no requirements.txt.
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ==============================================================================
 # ESTÁGIO 3: Copia e Configuração da Aplicação
 # ==============================================================================
-# Copia todo o código da sua aplicação para dentro do container
+# Copia todo o código do seu projeto para dentro do container.
 COPY . .
 
-# Expõe a porta que o Gunicorn irá usar
+# Expõe a porta 10000, que é a porta padrão que o Render espera.
+# O Gunicorn (nosso servidor de aplicação) irá "escutar" nesta porta.
 EXPOSE 10000
 
-# O comando para iniciar a aplicação quando o container for executado.
-# É o mesmo comando que estava no "Start Command" do Render.
+# O comando final que será executado para iniciar sua aplicação.
+# Ele inicia o Gunicorn, apontando para o arquivo de configuração WSGI do seu projeto.
 CMD ["gunicorn", "config.wsgi"]
