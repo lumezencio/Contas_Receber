@@ -1,6 +1,51 @@
 {% extends "base_interno.html" %}
 
-{% block title %}Detalhes da Conta - AEQUITAS{% endblock %}
+{% block title %}Detalhes da Conta - Lexio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .btn-3d {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1rem; /* 8px 16px */
+        border: none;
+        border-radius: 0.5rem; /* 8px - Contornos arredondados */
+        font-weight: 600; /* semibold */
+        color: white;
+        transition: all 0.1s ease-in-out;
+        cursor: pointer;
+        text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .btn-3d:hover {
+        transform: translateY(-1px); /* Efeito de flutuar ao passar o mouse */
+        filter: brightness(1.1);
+    }
+    .btn-3d:active {
+        transform: translateY(1px); /* Efeito de pressionar */
+        box-shadow: none !important; /* Remove a sombra quando pressionado */
+        filter: brightness(0.95);
+    }
+    /* Variações de Cor */
+    .btn-3d.btn-green {
+        background: linear-gradient(to top, #15803d, #22c55e);
+        box-shadow: 0 3px 0 #14532d;
+    }
+    .btn-3d.btn-yellow {
+        background: linear-gradient(to top, #a16207, #eab308);
+        box-shadow: 0 3px 0 #713f12;
+    }
+    .btn-3d.btn-blue {
+        background: linear-gradient(to top, #1d4ed8, #3b82f6);
+        box-shadow: 0 3px 0 #1e3a8a;
+    }
+    .btn-3d.btn-indigo {
+        background: linear-gradient(to top, #4338ca, #6366f1);
+        box-shadow: 0 3px 0 #312e81;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="mb-8">
@@ -11,36 +56,19 @@
 
 <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-lg mb-8">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center md:text-left">
-        <div>
-            <p class="text-sm text-gray-400">VALOR TOTAL</p>
-            <p class="text-2xl font-bold text-white">R$ {{ conta.valor_total|floatformat:2 }}</p>
-        </div>
-        <div>
-            <p class="text-sm text-gray-400">TOTAL PAGO</p>
-            <p class="text-2xl font-bold text-green-400">R$ {{ conta.total_pago|floatformat:2 }}</p>
-        </div>
-        <div>
-            <p class="text-sm text-gray-400">SALDO DEVEDOR</p>
-            <p class="text-2xl font-bold text-red-400">R$ {{ conta.total_pendente|floatformat:2 }}</p>
-        </div>
+        <div><p class="text-sm text-gray-400">VALOR TOTAL</p><p class="text-2xl font-bold text-white">R$ {{ conta.valor_total|floatformat:2 }}</p></div>
+        <div><p class="text-sm text-gray-400">TOTAL PAGO</p><p class="text-2xl font-bold text-green-400">R$ {{ conta.total_pago|floatformat:2 }}</p></div>
+        <div><p class="text-sm text-gray-400">SALDO DEVEDOR</p><p class="text-2xl font-bold text-red-400">R$ {{ conta.total_pendente|floatformat:2 }}</p></div>
     </div>
     <div class="mt-4">
-        {% with percentual=conta.get_percentual_pago %}
-        <div class="flex justify-between mb-1">
-            <span class="text-base font-medium text-cyan-400">Progresso</span>
-            <span class="text-sm font-medium text-cyan-400">{{ percentual }}%</span>
-        </div>
-        <div class="w-full bg-gray-700 rounded-full h-2.5">
-            <div class="bg-cyan-500 h-2.5 rounded-full" style="width: {{ percentual }}%"></div>
-        </div>
-        {% endwith %}
+        {% with percentual=conta.get_percentual_pago %}<div class="flex justify-between mb-1"><span class="text-base font-medium text-cyan-400">Progresso</span><span class="text-sm font-medium text-cyan-400">{{ percentual }}%</span></div><div class="w-full bg-gray-700 rounded-full h-2.5"><div class="bg-cyan-500 h-2.5 rounded-full" style="width: {{ percentual }}%"></div></div>{% endwith %}
     </div>
 </div>
 
 <div class="bg-gray-800 rounded-2xl shadow-xl border border-gray-700 overflow-hidden">
     <div class="p-6 border-b border-gray-700 flex justify-between items-center">
         <h2 class="text-xl font-bold text-white">Detalhes das Parcelas</h2>
-        <a href="{% url 'financeiro:conta_update' pk=conta.pk %}" class="text-indigo-400 hover:text-indigo-300 transition-colors" title="Editar Informações da Conta"><i class="fas fa-pencil-alt mr-2"></i>Editar Conta</a>
+        <a href="{% url 'financeiro:conta_update' pk=conta.pk %}" class="inline-flex items-center px-4 py-2 bg-indigo-700 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg shadow-md transition-all duration-200"><i class="fas fa-pencil-alt mr-2"></i>Editar Conta</a>
     </div>
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-700">
@@ -50,14 +78,13 @@
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">VENCIMENTO</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">VALOR</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">STATUS</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">DATA PAGTO.</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">AÇÕES</th>
                 </tr>
             </thead>
             <tbody class="bg-gray-800 divide-y divide-gray-700">
                 {% for parcela in parcelas %}
-                <tr class="hover:bg-gray-700/50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap font-medium text-white">Nº {{ parcela.numero_parcela }}</td>
+                <tr class="hover:bg-gray-700/50">
+                    <td class="px-6 py-4 whitespace-nowrap"><div class="font-medium text-white">Nº {{ parcela.numero_parcela }}</div><div class="text-xs text-gray-400">{{ parcela.data_pagamento|date:"d/m/Y"|default:"" }}</div></td>
                     <td class="px-6 py-4 whitespace-nowrap text-center text-gray-300">{{ parcela.data_vencimento|date:"d/m/Y" }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-center font-semibold text-cyan-400">R$ {{ parcela.valor_parcela|floatformat:2 }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
@@ -66,15 +93,16 @@
                         {% else %}<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-900/50 text-yellow-400">Em Aberto</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-gray-300">{{ parcela.data_pagamento|date:"d/m/Y"|default:"--" }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                        {% if parcela.status == 'pago' %}
-                            <form action="{% url 'financeiro:parcela_estornar' pk=parcela.pk %}" method="post" class="inline">{% csrf_token %}<button type="submit" class="text-yellow-400 hover:text-yellow-300" title="Estornar Pagamento"><i class="fas fa-undo"></i></button></form>
-                            <a href="{% url 'financeiro:gerar_recibo_pdf' pk=parcela.pk %}" target="_blank" class="text-blue-400 hover:text-blue-300" title="Gerar Recibo"><i class="fas fa-receipt"></i></a>
-                        {% else %}
-                            <form action="{% url 'financeiro:parcela_dar_baixa' pk=parcela.pk %}" method="post" class="inline">{% csrf_token %}<button type="submit" class="text-green-400 hover:text-green-300" title="Dar Baixa (Pagar)"><i class="fas fa-check-circle"></i></button></form>
-                        {% endif %}
-                        <a href="{% url 'financeiro:parcela_update' pk=parcela.pk %}" class="text-indigo-400 hover:text-indigo-300" title="Editar Parcela"><i class="fas fa-pencil-alt"></i></a>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex items-center justify-end space-x-3">
+                            {% if parcela.status == 'pago' %}
+                                <form action="{% url 'financeiro:parcela_estornar' pk=parcela.pk %}" method="post" class="inline">{% csrf_token %}<button type="submit" class="btn-3d btn-yellow" title="Estornar Pagamento"><i class="fas fa-undo fa-fw"></i></button></form>
+                                <a href="{% url 'financeiro:gerar_recibo_pdf' pk=parcela.pk %}" target="_blank" class="btn-3d btn-blue" title="Gerar Recibo"><i class="fas fa-receipt fa-fw"></i></a>
+                            {% else %}
+                                <form action="{% url 'financeiro:parcela_dar_baixa' pk=parcela.pk %}" method="post" class="inline">{% csrf_token %}<button type="submit" class="btn-3d btn-green" title="Dar Baixa (Pagar)"><i class="fas fa-check fa-fw"></i></button></form>
+                            {% endif %}
+                            <a href="{% url 'financeiro:parcela_update' pk=parcela.pk %}" class="btn-3d btn-indigo" title="Editar Parcela"><i class="fas fa-pencil-alt fa-fw"></i></a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}

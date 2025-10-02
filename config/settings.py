@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 from decouple import config
+import dj_database_url  # <-- Importação adicionada
 
 # --- Configurações Principais ---
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -58,8 +59,18 @@ TEMPLATES = [
 ]
 
 
-# --- Banco de Dados ---
-DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3'}}
+# =============================================================================
+# BANCO DE DADOS (CONFIGURAÇÃO PROFISSIONAL E ADAPTÁVEL)
+# =============================================================================
+# Esta configuração usa a variável de ambiente DATABASE_URL em produção (fornecida 
+# pela hospedagem, como o Render) e automaticamente usa o arquivo sqlite3 localmente 
+# se a variável não for encontrada.
+DATABASES = {
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600
+    )
+}
 
 
 # --- Validação de Senhas ---
@@ -94,5 +105,4 @@ INTERNAL_IPS = ["127.0.0.1"]
 # SEÇÃO DE AUTENTICAÇÃO
 # =============================================================================
 LOGIN_URL = 'login'
-# CORREÇÃO: Após o login, o usuário será levado para o dashboard em seu novo endereço.
 LOGIN_REDIRECT_URL = '/dashboard/'
