@@ -1,11 +1,17 @@
 {
-    "python-envs.pythonProjects": []
-}
-{
+    // Associa todos os arquivos .html neste projeto para serem tratados como 'django-html',
+    // ativando a coloração de sintaxe correta e o intellisense para templates Django.
     "files.associations": {
         "**/*.html": "django-html"
     },
+
+    // Garante que os atalhos de autocompletar do Emmet (para HTML) continuem
+    // funcionando dentro dos seus arquivos de template Django.
     "emmet.includeLanguages": {
         "django-html": "html"
-    }
+    },
+
+    // Configuração para a extensão Python, pode ser usada para especificar
+    // projetos ou ambientes, se necessário. Manter a configuração vazia é seguro.
+    "python-envs.pythonProjects": []
 }
