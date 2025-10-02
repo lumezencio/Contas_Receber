@@ -8,26 +8,36 @@ from decimal import Decimal, ROUND_DOWN
 from datetime import date
 import re
 
+class ClienteManager(models.Manager):
+    """Manager customizado para o modelo Cliente."""
+    def get_ativos(self):
+        """Retorna apenas clientes marcados como ativos."""
+        return self.filter(ativo=True)
+
 class Cliente(models.Model):
+    """Representa um cliente no sistema, seja pessoa física ou jurídica."""
     nome_completo = models.CharField(max_length=200, verbose_name="Nome Completo")
     cpf_cnpj = models.CharField(max_length=18, blank=True, null=True, verbose_name="CPF/CNPJ")
     telefone = models.CharField(max_length=20, verbose_name="Telefone")
     email = models.EmailField(blank=True, null=True, verbose_name="E-mail")
     endereco = models.TextField(blank=True, null=True, verbose_name="Endereço")
     observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
-    ativo = models.BooleanField(default=True)
+    ativo = models.BooleanField(default=True, verbose_name="Cliente Ativo")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+
+    objects = ClienteManager()
 
     class Meta:
         verbose_name = "Cliente"
         verbose_name_plural = "Clientes"
         ordering = ['nome_completo']
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.nome_completo
     
-    def get_telefone_formatado(self):
+    def get_telefone_formatado(self) -> str:
+        """Retorna o número de telefone formatado com uma máscara profissional."""
         if not self.telefone: return "Não informado"
         numeros = re.sub(r'\D', '', self.telefone)
         if len(numeros) == 11: return f"({numeros[:2]}) {numeros[2:7]}-{numeros[7:]}"
@@ -35,6 +45,7 @@ class Cliente(models.Model):
         return self.telefone
 
 class ContaReceber(models.Model):
+    """Representa uma obrigação financeira a ser recebida de um Cliente."""
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='contas', verbose_name="Cliente")
     descricao = models.CharField(max_length=200, verbose_name="Descrição")
     valor_total = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], verbose_name="Valor Total")
@@ -49,23 +60,23 @@ class ContaReceber(models.Model):
         verbose_name_plural = "Contas a Receber"
         ordering = ['-data_emissao']
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.descricao} - {self.cliente.nome_completo}"
 
-    def total_pago(self):
+    def total_pago(self) -> Decimal:
         total = self.parcelas.filter(status='pago').aggregate(total=Sum('valor_parcela'))['total']
         return total or Decimal('0.00')
 
-    def total_pendente(self):
+    def total_pendente(self) -> Decimal:
         total = self.parcelas.filter(status__in=['aberto', 'vencido']).aggregate(total=Sum('valor_parcela'))['total']
         return total or Decimal('0.00')
 
-    def get_parcelas_info(self):
+    def get_parcelas_info(self) -> str:
         total = self.parcelas.count()
         pagas = self.parcelas.filter(status='pago').count()
         return f"{pagas} de {total}"
 
-    def get_status_info(self):
+    def get_status_info(self) -> dict:
         total_parcelas = self.parcelas.count()
         if total_parcelas == 0: return {'text': 'Sem Parcelas', 'icon': 'bg-gray-400', 'badge': 'bg-gray-700 text-gray-300 border-gray-600'}
         parcelas_pagas = self.parcelas.filter(status='pago').count()
@@ -74,12 +85,13 @@ class ContaReceber(models.Model):
         if parcelas_pagas > 0: return {'text': 'Parcial', 'icon': 'bg-blue-400', 'badge': 'bg-blue-900/30 text-blue-400 border border-blue-700'}
         return {'text': 'Em Aberto', 'icon': 'bg-yellow-400', 'badge': 'bg-yellow-900/30 text-yellow-400 border border-yellow-700'}
 
-    def get_percentual_pago(self):
+    def get_percentual_pago(self) -> int:
         if self.valor_total <= 0: return 0
         percentual = (self.total_pago() / self.valor_total) * 100
         return int(percentual.quantize(Decimal('1'), rounding=ROUND_DOWN))
 
 class Parcela(models.Model):
+    """Representa uma única parcela de uma Conta a Receber."""
     STATUS_CHOICES = [('aberto', 'Aberto'), ('pago', 'Pago'), ('vencido', 'Vencido')]
     conta = models.ForeignKey(ContaReceber, on_delete=models.CASCADE, related_name='parcelas', verbose_name="Conta")
     numero_parcela = models.IntegerField(verbose_name="Número da Parcela")
@@ -97,37 +109,57 @@ class Parcela(models.Model):
         ordering = ['conta__id', 'numero_parcela']
         unique_together = ['conta', 'numero_parcela']
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Parcela {self.numero_parcela}/{self.conta.numero_parcelas} - {self.conta.descricao}"
 
     def save(self, *args, **kwargs):
+        """
+        Sobrescreve o método save para incluir lógicas de negócio avançadas:
+        1. Atualiza o status da parcela com base na data de pagamento/vencimento.
+        2. Se o valor de uma parcela for alterado, rebalanceia automaticamente
+           o valor das outras parcelas em aberto para manter a soma total.
+        """
+        # Define o status da parcela antes de qualquer outra operação
         if self.data_pagamento: self.status = 'pago'
         elif self.status != 'pago' and self.data_vencimento < date.today(): self.status = 'vencido'
         elif self.status != 'pago': self.status = 'aberto'
 
+        # Lógica de rebalanceamento (apenas para alterações, não para criações)
         if not self._state.adding and self.pk:
             try:
                 versao_antiga = Parcela.objects.get(pk=self.pk)
                 if versao_antiga.valor_parcela != self.valor_parcela:
                     with transaction.atomic():
-                        super().save(*args, **kwargs)
+                        super().save(*args, **kwargs) # Salva a alteração da parcela atual
+                        
                         conta = self.conta
-                        parcelas_restantes = conta.parcelas.filter(status__in=['aberto', 'vencido']).exclude(pk=self.pk).order_by('numero_parcela')
-                        num_restantes = parcelas_restantes.count()
-                        if num_restantes > 0:
-                            soma_comprometida = conta.parcelas.filter(status='pago').exclude(pk=self.pk).aggregate(s=Sum('valor_parcela'))['s'] or Decimal('0.00')
-                            soma_comprometida += self.valor_parcela
-                            saldo_a_distribuir = conta.valor_total - soma_comprometida
-                            valor_base = (saldo_a_distribuir / num_restantes).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
-                            parcelas_restantes.update(valor_parcela=valor_base)
-                            soma_distribuida = valor_base * num_restantes
+                        # Filtra as outras parcelas que podem ser ajustadas
+                        parcelas_ajustaveis = conta.parcelas.filter(
+                            status__in=['aberto', 'vencido']
+                        ).exclude(pk=self.pk).order_by('numero_parcela')
+                        
+                        num_ajustaveis = parcelas_ajustaveis.count()
+                        
+                        if num_ajustaveis > 0:
+                            soma_nao_ajustaveis = conta.parcelas.exclude(
+                                id__in=parcelas_ajustaveis.values_list('id', flat=True)
+                            ).aggregate(s=Sum('valor_parcela'))['s'] or Decimal('0.00')
+                            
+                            saldo_a_distribuir = conta.valor_total - soma_nao_ajustaveis
+                            valor_base = (saldo_a_distribuir / num_ajustaveis).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+                            
+                            parcelas_ajustaveis.update(valor_parcela=valor_base)
+                            
+                            # Adiciona o resíduo do arredondamento à última parcela ajustável
+                            soma_distribuida = valor_base * num_ajustaveis
                             residuo = saldo_a_distribuir - soma_distribuida
-                            ultima_parcela = parcelas_restantes.last()
-                            if ultima_parcela:
+                            
+                            ultima_parcela = parcelas_ajustaveis.last()
+                            if ultima_parcela and residuo != 0:
                                 ultima_parcela.valor_parcela += residuo
                                 ultima_parcela.save(update_fields=['valor_parcela'])
-                    return
+                    return # Finaliza para evitar dupla execução do save
             except Parcela.DoesNotExist:
-                pass
+                pass # É uma criação, segue o fluxo normal
         
         super().save(*args, **kwargs)
