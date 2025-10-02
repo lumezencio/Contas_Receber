@@ -22,6 +22,7 @@ from .forms import (
 )
 
 def numero_para_extenso(valor: Decimal) -> str:
+    """Converte um valor monetário para sua representação por extenso."""
     try:
         from num2words import num2words
         inteiro = int(valor)
@@ -78,7 +79,8 @@ def cliente_list(request):
 def cliente_detail(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
     contas = cliente.contas.all().order_by('-data_emissao')
-    return render(request, 'financeiro/cliente_detail.html', {'cliente': cliente, 'contas': contas})
+    context = {'cliente': cliente, 'contas': contas}
+    return render(request, 'financeiro/cliente_detail.html', context)
 
 @login_required
 def cliente_create(request):
