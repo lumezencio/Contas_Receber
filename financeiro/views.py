@@ -11,6 +11,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN
+
 from weasyprint import HTML
 from dateutil.relativedelta import relativedelta
 
@@ -19,7 +20,6 @@ from .forms import (
     ClienteForm, ContaReceberForm, ContaReceberUpdateForm,
     ParcelaUpdateForm, CustomUserCreationForm
 )
-
 
 def numero_para_extenso(valor: Decimal) -> str:
     """Converte um valor monetário para sua representação por extenso."""
@@ -173,7 +173,7 @@ def conta_detail(request, pk):
     vencidas_qs = parcelas.filter(status='aberto', data_vencimento__lt=hoje)
     if vencidas_qs.exists():
         vencidas_qs.update(status='vencido')
-        parcelas = conta.parcelas.all().order_by('numero_parcela') # Recarrega para exibir status atualizado
+        parcelas = conta.parcelas.all().order_by('numero_parcela')
     return render(request, 'financeiro/conta_detail.html', {'conta': conta, 'parcelas': parcelas})
 
 @login_required
@@ -207,7 +207,7 @@ def parcela_update(request, pk):
     if request.method == 'POST':
         form = ParcelaUpdateForm(request.POST, instance=parcela)
         if form.is_valid():
-            form.save() # A mágica do rebalanceamento acontece no models.py
+            form.save()
             messages.success(request, f"Parcela {parcela.numero_parcela} atualizada e valores rebalanceados.")
             return redirect('financeiro:conta_detail', pk=parcela.conta.pk)
     else:
@@ -253,7 +253,6 @@ def gerar_recibo_pdf(request, pk):
     HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
     return response
 
-# Views de relatório (mantidas para consistência)
 @login_required
 def relatorio_cliente_html(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)

@@ -77,6 +77,10 @@ class ClienteForm(FormStylingMixin, forms.ModelForm):
 
     def clean_nome_completo(self):
         return self.cleaned_data.get('nome_completo', '').strip().upper()
+    def clean_endereco(self):
+        return self.cleaned_data.get('endereco', '').strip().upper()
+    def clean_observacoes(self):
+        return self.cleaned_data.get('observacoes', '').strip().upper()
     def clean_email(self):
         email = self.cleaned_data.get('email')
         return email.strip().lower() if email else email

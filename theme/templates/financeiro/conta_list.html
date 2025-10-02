@@ -1,4 +1,4 @@
-{% extends "base_interno.html" %} {% block title %}Contas a Receber - AEQUITAS{% endblock %}
+{% extends "base_interno.html" %} {% block title %}Contas a Receber - Lexio{% endblock %}
 
 {% block content %}
 <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
@@ -11,7 +11,7 @@
             {% endif %}
         </p>
     </div>
-    <div class="mt-4 md:mt-0">
+    <div class="mt-4 md-mt-0">
         <a href="{% url 'financeiro:conta_create' %}" 
            class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -95,20 +95,11 @@
     
     {% if contas.has_other_pages %}
     <div class="bg-gray-900/50 px-6 py-4 flex items-center justify-between border-t border-gray-700">
-        <div><p class="text-sm text-gray-400">Mostrando <span class="font-medium text-white">{{ contas.start_index }}</span> a <span class="font-medium text-white">{{ contas.end_index }}</span> de <span class="font-medium text-white">{{ contas.paginator.count }}</span> resultados</p></div>
-        <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Paginação">
-                {% if contas.has_previous %}<a href="?page={{ contas.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-l-md bg-gray-700 text-sm font-medium text-gray-300 hover:bg-gray-600 transition-colors"><svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></a>{% endif %}
-                <span class="relative inline-flex items-center px-4 py-2 bg-cyan-600 text-sm font-medium text-white">Página {{ contas.number }}</span>
-                {% if contas.has_next %}<a href="?page={{ contas.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-r-md bg-gray-700 text-sm font-medium text-gray-300 hover:bg-gray-600 transition-colors"><svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg></a>{% endif %}
-            </nav>
         </div>
-    </div>
     {% endif %}
     
     {% else %}
     <div class="text-center py-16">
-        <svg class="mx-auto h-24 w-24 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
         <h3 class="mt-4 text-xl font-medium text-gray-400">Nenhuma conta encontrada</h3>
         <p class="mt-2 text-sm text-gray-500">Comece lançando sua primeira conta a receber.</p>
     </div>
