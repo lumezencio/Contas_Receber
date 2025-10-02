@@ -12,7 +12,6 @@ from typing import Dict, Union
 class ClienteManager(models.Manager):
     """Manager customizado para o modelo Cliente, otimizando queries comuns."""
     def get_ativos(self):
-        """Retorna um QuerySet contendo apenas clientes marcados como ativos."""
         return self.filter(ativo=True)
 
 class Cliente(models.Model):
@@ -26,7 +25,6 @@ class Cliente(models.Model):
     ativo: bool = models.BooleanField(default=True, verbose_name="Cliente Ativo")
     created_at: date = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at: date = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
-
     objects = ClienteManager()
 
     class Meta:
@@ -38,7 +36,6 @@ class Cliente(models.Model):
         return self.nome_completo
     
     def get_telefone_formatado(self) -> str:
-        """Retorna o número de telefone formatado com uma máscara profissional."""
         if not self.telefone: return "Não informado"
         numeros = re.sub(r'\D', '', self.telefone)
         if len(numeros) == 11: return f"({numeros[:2]}) {numeros[2:7]}-{numeros[7:]}"
@@ -46,7 +43,6 @@ class Cliente(models.Model):
         return self.telefone
 
 class ContaReceber(models.Model):
-    # ... (código da classe ContaReceber como estava, sem alterações)
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='contas', verbose_name="Cliente")
     descricao = models.CharField(max_length=200, verbose_name="Descrição")
     valor_total = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], verbose_name="Valor Total")
@@ -92,7 +88,6 @@ class ContaReceber(models.Model):
         return int(percentual.quantize(Decimal('1'), rounding=ROUND_DOWN))
 
 class Parcela(models.Model):
-    # ... (campos da classe Parcela como estavam, sem alterações)
     STATUS_CHOICES = [('aberto', 'Aberto'), ('pago', 'Pago'), ('vencido', 'Vencido')]
     conta = models.ForeignKey(ContaReceber, on_delete=models.CASCADE, related_name='parcelas', verbose_name="Conta")
     numero_parcela = models.IntegerField(verbose_name="Número da Parcela")
