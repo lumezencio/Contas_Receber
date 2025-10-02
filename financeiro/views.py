@@ -21,11 +21,7 @@ from .forms import (
     ParcelaUpdateForm, CustomUserCreationForm
 )
 
-# ==============================================================================
-# FUNÇÕES AUXILIARES
-# ==============================================================================
 def numero_para_extenso(valor: Decimal) -> str:
-    """Converte um valor monetário para sua representação por extenso."""
     try:
         from num2words import num2words
         inteiro = int(valor)
@@ -41,12 +37,8 @@ def numero_para_extenso(valor: Decimal) -> str:
     except (ImportError, NotImplementedError):
         return str(valor).replace('.', ',')
 
-# ==============================================================================
-# VIEWS DE AUTENTICAÇÃO E GESTÃO
-# ==============================================================================
 @login_required
 def signup(request):
-    """View para um admin cadastrar novos funcionários."""
     if not request.user.is_staff:
         messages.error(request, "Você não tem permissão para realizar esta ação.")
         return redirect('financeiro:dashboard')
@@ -62,18 +54,14 @@ def signup(request):
 
 @login_required
 def index(request):
-    """View principal do sistema (Dashboard Inteligente)."""
     hoje = timezone.now().date()
     Parcela.objects.filter(status='aberto', data_vencimento__lt=hoje).update(status='vencido')
-    
     total_a_receber = Parcela.objects.filter(status__in=['aberto', 'vencido']).aggregate(total=Sum('valor_parcela'))['total'] or Decimal('0.00')
     total_vencido = Parcela.objects.filter(status='vencido').aggregate(total=Sum('valor_parcela'))['total'] or Decimal('0.00')
     recebido_no_mes = Parcela.objects.filter(status='pago', data_pagamento__year=hoje.year, data_pagamento__month=hoje.month).aggregate(total=Sum('valor_parcela'))['total'] or Decimal('0.00')
     clientes_ativos = Cliente.objects.get_ativos().count()
-
     parcelas_a_vencer = Parcela.objects.filter(status='aberto', data_vencimento__gte=hoje).select_related('conta', 'conta__cliente').order_by('data_vencimento')[:5]
     contas_em_atraso = ContaReceber.objects.filter(parcelas__status='vencido').select_related('cliente').distinct().order_by('cliente__nome_completo')
-    
     context = {
         'total_a_receber': total_a_receber, 'total_vencido': total_vencido,
         'recebido_no_mes': recebido_no_mes, 'clientes_ativos': clientes_ativos,
@@ -81,9 +69,6 @@ def index(request):
     }
     return render(request, 'financeiro/index.html', context)
 
-# ==============================================================================
-# VIEWS DO MÓDULO DE CLIENTES (CRUD)
-# ==============================================================================
 @login_required
 def cliente_list(request):
     clientes = Cliente.objects.all().order_by('nome_completo')
@@ -93,8 +78,7 @@ def cliente_list(request):
 def cliente_detail(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
     contas = cliente.contas.all().order_by('-data_emissao')
-    context = {'cliente': cliente, 'contas': contas}
-    return render(request, 'financeiro/cliente_detail.html', context)
+    return render(request, 'financeiro/cliente_detail.html', {'cliente': cliente, 'contas': contas})
 
 @login_required
 def cliente_create(request):
@@ -133,9 +117,6 @@ def cliente_delete(request, pk):
         return redirect('financeiro:cliente_list')
     return render(request, 'financeiro/cliente_confirm_delete.html', {'cliente': cliente})
 
-# ==============================================================================
-# VIEWS DO MÓDULO DE CONTAS A RECEBER (CRUD)
-# ==============================================================================
 @login_required
 def conta_list(request):
     contas_queryset = ContaReceber.objects.select_related('cliente').order_by('-data_emissao')
@@ -215,9 +196,6 @@ def conta_delete(request, pk):
         return redirect('financeiro:conta_list')
     return render(request, 'financeiro/conta_confirm_delete.html', {'conta': conta})
 
-# ==============================================================================
-# VIEWS DE AÇÕES DE PARCELAS
-# ==============================================================================
 @login_required
 def parcela_update(request, pk):
     parcela = get_object_or_404(Parcela.objects.select_related('conta'), pk=pk)
@@ -255,9 +233,6 @@ def parcela_estornar(request, pk):
         return redirect('financeiro:conta_detail', pk=parcela.conta.pk)
     return redirect('financeiro:conta_list')
 
-# ==============================================================================
-# VIEWS DE DOCUMENTOS E RELATÓRIOS
-# ==============================================================================
 @login_required
 def gerar_recibo_pdf(request, pk):
     parcela = get_object_or_404(Parcela.objects.select_related('conta__cliente'), pk=pk)
