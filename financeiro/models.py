@@ -91,8 +91,8 @@ class ContaReceber(models.Model):
         percentual = (self.total_pago() / self.valor_total) * 100
         return int(percentual.quantize(Decimal('1'), rounding=ROUND_DOWN))
 
-
 class Parcela(models.Model):
+    # ... (campos da classe Parcela como estavam, sem alterações)
     STATUS_CHOICES = [('aberto', 'Aberto'), ('pago', 'Pago'), ('vencido', 'Vencido')]
     conta = models.ForeignKey(ContaReceber, on_delete=models.CASCADE, related_name='parcelas', verbose_name="Conta")
     numero_parcela = models.IntegerField(verbose_name="Número da Parcela")
