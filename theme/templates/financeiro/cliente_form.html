@@ -1,54 +1,23 @@
 {% extends "base_interno.html" %}
 
-{% block title %}{{ titulo|default:"Formulário Cliente" }} - AEQUITAS{% endblock %}
+{% block title %}{{ titulo|default:"Formulário Cliente" }} - Lexio{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto py-10">
     <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
         <form method="post" novalidate>
             {% csrf_token %}
-            
             <div class="p-8">
-                {% if form.non_field_errors %}
-                    <div class="bg-red-100 text-red-700 border border-red-300 rounded-lg p-4 mb-6">
-                        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
-                    </div>
-                {% endif %}
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                    <div class="md:col-span-2">
-                        <label for="{{ form.nome_completo.id_for_label }}" class="block text-sm font-semibold text-gray-700">{{ form.nome_completo.label }}</label>
-                        {{ form.nome_completo }}
-                        {% for error in form.nome_completo.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
-                    </div>
-                    <div>
-                        <label for="{{ form.cpf_cnpj.id_for_label }}" class="block text-sm font-semibold text-gray-700">{{ form.cpf_cnpj.label }}</label>
-                        {{ form.cpf_cnpj }}
-                        {% for error in form.cpf_cnpj.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
-                    </div>
-                    <div>
-                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-semibold text-gray-700">{{ form.email.label }}</label>
-                        {{ form.email }}
-                        {% for error in form.email.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
-                    </div>
-                    <div class="md:col-span-2">
-                        <label for="{{ form.telefone.id_for_label }}" class="block text-sm font-semibold text-gray-700">{{ form.telefone.label }}</label>
-                        {{ form.telefone }}
-                        {% for error in form.telefone.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
-                    </div>
-                    <div class="md:col-span-2">
-                        <label for="{{ form.endereco.id_for_label }}" class="block text-sm font-semibold text-gray-700">{{ form.endereco.label }}</label>
-                        {{ form.endereco }}
-                        {% for error in form.endereco.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
-                    </div>
-                    <div class="md:col-span-2">
-                        <label for="{{ form.observacoes.id_for_label }}" class="block text-sm font-semibold text-gray-700">{{ form.observacoes.label }}</label>
-                        {{ form.observacoes }}
-                        {% for error in form.observacoes.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
-                    </div>
+                    {% for field in form %}
+                        <div class="{% if forloop.counter == 1 or forloop.counter >= 4 %}md:col-span-2{% endif %}">
+                            <label for="{{ field.id_for_label }}" class="block text-sm font-semibold text-gray-700">{{ field.label }}</label>
+                            {{ field }}
+                            {% for error in field.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endfor %}
                 </div>
             </div>
-
             <div class="bg-gray-50 px-8 py-4 flex items-center justify-between border-t border-gray-200">
                 <div>
                     <h3 class="text-lg font-bold text-gray-800">{{ titulo }}</h3>
@@ -64,4 +33,9 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/mask@3.x.x/dist/cdn.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 {% endblock %}

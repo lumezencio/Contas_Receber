@@ -1,6 +1,6 @@
 # financeiro/models.py
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Sum, F
 from django.core.validators import MinValueValidator
 from django.utils import timezone
@@ -28,15 +28,11 @@ class Cliente(models.Model):
         return self.nome_completo
     
     def get_telefone_formatado(self):
-        if not self.telefone:
-            return "Não informado"
+        if not self.telefone: return "Não informado"
         numeros = re.sub(r'\D', '', self.telefone)
-        if len(numeros) == 11:
-            return f"({numeros[:2]}) {numeros[2:7]}-{numeros[7:]}"
-        elif len(numeros) == 10:
-            return f"({numeros[:2]}) {numeros[2:6]}-{numeros[6:]}"
-        else:
-            return self.telefone
+        if len(numeros) == 11: return f"({numeros[:2]}) {numeros[2:7]}-{numeros[7:]}"
+        if len(numeros) == 10: return f"({numeros[:2]}) {numeros[2:6]}-{numeros[6:]}"
+        return self.telefone
 
 class ContaReceber(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='contas', verbose_name="Cliente")
@@ -71,23 +67,17 @@ class ContaReceber(models.Model):
 
     def get_status_info(self):
         total_parcelas = self.parcelas.count()
-        if total_parcelas == 0:
-            return {'text': 'Sem Parcelas', 'icon': 'bg-gray-400', 'badge': 'bg-gray-700 text-gray-300 border-gray-600'}
+        if total_parcelas == 0: return {'text': 'Sem Parcelas', 'icon': 'bg-gray-400', 'badge': 'bg-gray-700 text-gray-300 border-gray-600'}
         parcelas_pagas = self.parcelas.filter(status='pago').count()
-        if parcelas_pagas == total_parcelas:
-            return {'text': 'Quitada', 'icon': 'bg-green-400', 'badge': 'bg-green-900/30 text-green-400 border border-green-700'}
-        if self.parcelas.filter(status='vencido').exists():
-            return {'text': 'Vencida', 'icon': 'bg-red-400 animate-pulse', 'badge': 'bg-red-900/30 text-red-400 border border-red-700'}
-        if parcelas_pagas > 0:
-            return {'text': 'Parcial', 'icon': 'bg-blue-400', 'badge': 'bg-blue-900/30 text-blue-400 border border-blue-700'}
+        if parcelas_pagas == total_parcelas and self.total_pago() == self.valor_total: return {'text': 'Quitada', 'icon': 'bg-green-400', 'badge': 'bg-green-900/30 text-green-400 border border-green-700'}
+        if self.parcelas.filter(status='vencido').exists(): return {'text': 'Vencida', 'icon': 'bg-red-400 animate-pulse', 'badge': 'bg-red-900/30 text-red-400 border border-red-700'}
+        if parcelas_pagas > 0: return {'text': 'Parcial', 'icon': 'bg-blue-400', 'badge': 'bg-blue-900/30 text-blue-400 border border-blue-700'}
         return {'text': 'Em Aberto', 'icon': 'bg-yellow-400', 'badge': 'bg-yellow-900/30 text-yellow-400 border border-yellow-700'}
 
     def get_percentual_pago(self):
-        if self.valor_total == 0:
-            return 0
+        if self.valor_total <= 0: return 0
         percentual = (self.total_pago() / self.valor_total) * 100
         return int(percentual.quantize(Decimal('1'), rounding=ROUND_DOWN))
-
 
 class Parcela(models.Model):
     STATUS_CHOICES = [('aberto', 'Aberto'), ('pago', 'Pago'), ('vencido', 'Vencido')]
@@ -100,7 +90,7 @@ class Parcela(models.Model):
     observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
-
+    
     class Meta:
         verbose_name = "Parcela"
         verbose_name_plural = "Parcelas"
@@ -111,50 +101,33 @@ class Parcela(models.Model):
         return f"Parcela {self.numero_parcela}/{self.conta.numero_parcelas} - {self.conta.descricao}"
 
     def save(self, *args, **kwargs):
-        # Flag para controlar a recursão e o rebalanceamento
-        rebalancear = kwargs.pop('rebalancear', True)
-        
-        # Lógica para detectar se o valor da parcela mudou
-        valor_mudou = False
+        if self.data_pagamento: self.status = 'pago'
+        elif self.status != 'pago' and self.data_vencimento < date.today(): self.status = 'vencido'
+        elif self.status != 'pago': self.status = 'aberto'
+
         if not self._state.adding and self.pk:
             try:
                 versao_antiga = Parcela.objects.get(pk=self.pk)
                 if versao_antiga.valor_parcela != self.valor_parcela:
-                    valor_mudou = True
+                    with transaction.atomic():
+                        super().save(*args, **kwargs)
+                        conta = self.conta
+                        parcelas_restantes = conta.parcelas.filter(status__in=['aberto', 'vencido']).exclude(pk=self.pk).order_by('numero_parcela')
+                        num_restantes = parcelas_restantes.count()
+                        if num_restantes > 0:
+                            soma_comprometida = conta.parcelas.filter(status='pago').exclude(pk=self.pk).aggregate(s=Sum('valor_parcela'))['s'] or Decimal('0.00')
+                            soma_comprometida += self.valor_parcela
+                            saldo_a_distribuir = conta.valor_total - soma_comprometida
+                            valor_base = (saldo_a_distribuir / num_restantes).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+                            parcelas_restantes.update(valor_parcela=valor_base)
+                            soma_distribuida = valor_base * num_restantes
+                            residuo = saldo_a_distribuir - soma_distribuida
+                            ultima_parcela = parcelas_restantes.last()
+                            if ultima_parcela:
+                                ultima_parcela.valor_parcela += residuo
+                                ultima_parcela.save(update_fields=['valor_parcela'])
+                    return
             except Parcela.DoesNotExist:
                 pass
-
-        # Lógica de atualização de status (executada antes de salvar)
-        if self.data_pagamento:
-            self.status = 'pago'
-        elif self.status != 'pago' and self.data_vencimento < date.today():
-            self.status = 'vencido'
-        elif self.status != 'pago' and self.data_vencimento >= date.today():
-            self.status = 'aberto'
         
-        # Salva a alteração atual da parcela
         super().save(*args, **kwargs)
-
-        # ==============================================================================
-        # NOVA LÓGICA PROFISSIONAL DE REBALANCEAMENTO AUTOMÁTICO
-        # ==============================================================================
-        if valor_mudou and rebalancear:
-            conta = self.conta
-            
-            # Calcula a soma de todas as parcelas após a alteração
-            soma_atual = conta.parcelas.aggregate(s=Sum('valor_parcela'))['s'] or Decimal('0.00')
-            
-            # Calcula a diferença para o valor total da conta
-            diferenca = conta.valor_total - soma_atual
-            
-            # Encontra a última parcela não paga (que não seja a que acabamos de editar)
-            # É nela que a diferença será aplicada.
-            ultima_parcela_ajustavel = conta.parcelas.filter(
-                status__in=['aberto', 'vencido']
-            ).exclude(pk=self.pk).order_by('-numero_parcela').first()
-
-            if ultima_parcela_ajustavel:
-                # Usa F() expression para uma atualização atômica e segura no banco de dados
-                Parcela.objects.filter(pk=ultima_parcela_ajustavel.pk).update(
-                    valor_parcela=F('valor_parcela') + diferenca
-                )
