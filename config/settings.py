@@ -13,31 +13,13 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
 
 
-# =============================================================================
-# DEFINIÇÃO DE APLICAÇÕES (COM ORDEM CORRIGIDA)
-# =============================================================================
-# Seus apps locais vêm PRIMEIRO para garantir que seus templates 
-# (como o de login/logout) substituam os templates padrão do Django.
-
-LOCAL_APPS = [
-    'financeiro',
-    'theme',
-]
-
-THIRD_PARTY_APPS = [
-    'tailwind',
-]
-
+# --- Definição de Aplicações ---
+LOCAL_APPS = ['financeiro', 'theme']
+THIRD_PARTY_APPS = ['tailwind']
 DJANGO_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+    'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
+    'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles',
 ]
-
-# A ordem correta: Locais > Terceiros > Padrão Django
 INSTALLED_APPS = LOCAL_APPS + THIRD_PARTY_APPS + DJANGO_APPS
 
 
@@ -77,12 +59,7 @@ TEMPLATES = [
 
 
 # --- Banco de Dados ---
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3'}}
 
 
 # --- Validação de Senhas ---
@@ -101,19 +78,14 @@ USE_I18N = True
 USE_TZ = True
 
 
-# --- Arquivos Estáticos (CSS, JavaScript, Imagens) ---
+# --- Arquivos Estáticos ---
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
 
-# --- Configurações Padrão do Django ---
+# --- Configurações Padrão e de Terceiros ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
-# --- Configurações de Terceiros (Tailwind) ---
 TAILWIND_APP_NAME = 'theme'
 INTERNAL_IPS = ["127.0.0.1"]
 
@@ -122,6 +94,5 @@ INTERNAL_IPS = ["127.0.0.1"]
 # SEÇÃO DE AUTENTICAÇÃO
 # =============================================================================
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = '/'
-# A linha LOGOUT_REDIRECT_URL não é necessária, pois o Django usará 
-# o template 'registration/logged_out.html' por padrão.
+# CORREÇÃO: Após o login, o usuário será levado para o dashboard em seu novo endereço.
+LOGIN_REDIRECT_URL = '/dashboard/'
